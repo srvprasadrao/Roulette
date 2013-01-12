@@ -11,6 +11,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.shapes.OvalShape;
+import android.graphics.drawable.shapes.RoundRectShape;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -18,14 +19,18 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class RouletteTable extends View {
+	private static final int TEXT_SIZE = 20;
+	
 	private Paint tablePaint;
 	private Paint textPaint;
 	private Paint betPaint;
+	private Paint wheelPaint;
+	private Paint borderPaint;
 	private List<Chip> chips;
 	private Rect rectangle;
 	
-	private static final int betW = 60;
-	private static final int betH = 90;
+	private static final int betW = 35;
+	private static final int betH = 60;
 	
 	public RouletteTable(Context context) {
 		super(context);
@@ -43,10 +48,11 @@ public class RouletteTable extends View {
 	}
 	
 	private void initialize(Context context) {
+		setBackgroundDrawable(getResources().getDrawable(R.drawable.table));
 		textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		textPaint.setStyle(Paint.Style.FILL);
 		textPaint.setColor(Color.WHITE);
-		textPaint.setTextSize(35);
+		textPaint.setTextSize(TEXT_SIZE);
 		
 		tablePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 	    tablePaint.setStyle(Paint.Style.FILL);
@@ -55,6 +61,14 @@ public class RouletteTable extends View {
 	    betPaint.setStyle(Paint.Style.FILL_AND_STROKE);
 	    betPaint.setColor(Color.BLACK);
 	    
+	    wheelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+	    wheelPaint.setStyle(Paint.Style.FILL);
+	    wheelPaint.setColor(Color.YELLOW);
+	    
+	    borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+	    borderPaint.setStyle(Paint.Style.STROKE);
+	    borderPaint.setColor(Color.WHITE);
+	    
 	    chips = new ArrayList<Chip>();
 	    Chip.setBitmapResource(context);	
 	    
@@ -62,8 +76,8 @@ public class RouletteTable extends View {
 	} 
 	
 	private void drawTable(Canvas canvas) {
-		int startX = 50;
-		int startY = 50; 
+		int startX = 300;
+		int startY = 20; 
 		int counter = 1;
 		for (int x = 1; x <= 12; ++x) {
 			int tempX = startX;
@@ -85,11 +99,42 @@ public class RouletteTable extends View {
 			// move to the right
 			startX += betW;
 		}
+		
+		// draw 2 to 1
+		textPaint.setColor(Color.BLACK);
+		betPaint.setColor(Color.GREEN);
+		int tempH = startY;
+		for (int i = 0; i < 3; ++i) {
+			rectangle.set(startX, tempH, startX + betW, tempH + betH);
+			canvas.drawRect(rectangle, betPaint);
+			canvas.drawRect(rectangle, borderPaint);
+			canvas.drawText("2/1", startX, tempH + betH, textPaint);
+			tempH += betH;
+		}
+		
+		// draw 0 and 00
+		startX = 300 - betW;
+		tempH = startY;
+		int newH = (betH * 3) /2;
+		for (int i = 0; i < 2; ++i) {
+			rectangle.set(startX, tempH, startX + betW, tempH + newH);
+			canvas.drawRect(rectangle, betPaint);
+			canvas.drawRect(rectangle, borderPaint);
+			canvas.drawText("0", startX, tempH + betH, textPaint);
+			tempH += newH;
+		}
+	}
+	
+	private void drawWheel(Canvas canvas) {
+		canvas.drawCircle(120, 120, 100, wheelPaint);
+		wheelPaint.setColor(Color.GREEN);
+		canvas.drawCircle(120, 120, 80, wheelPaint);
 	}
 	
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
+		drawWheel(canvas);
 		drawTable(canvas);
 		for (Chip c : chips) {
 			c.draw(canvas);

@@ -27,7 +27,6 @@ public class Chip implements Drawable {
 		this.y = y;
 	}
 
-	@Override
 	public void draw(Canvas canvas) {
 		canvas.drawBitmap(bitmap, x, y, painter);
 	}

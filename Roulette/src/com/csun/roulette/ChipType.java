@@ -1,7 +1,6 @@
 package com.csun.roulette;
 
 public enum ChipType {
-	_25_CENTS,
 	_1_DOLLAR,
 	_5_DOLLARS,
 	_25_DOLLARS,
@@ -12,11 +11,8 @@ public enum ChipType {
 	
 	public double pay(int howMany, double rate) {
 		switch (this) {
-			case _25_CENTS:
-				return howMany * 0.25 * rate;
-				
 			case _1_DOLLAR:
-				return howMany * rate;
+				return howMany * 1.0 * rate;
 				
 			case _5_DOLLARS:
 				return howMany * 5.0 * rate;
