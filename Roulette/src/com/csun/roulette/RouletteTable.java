@@ -32,18 +32,23 @@ public class RouletteTable extends View {
 	private static final int betW = 35;
 	private static final int betH = 60;
 	
+	private final RouletteWheel wheel;
+	
 	public RouletteTable(Context context) {
 		super(context);
+	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
 	
 	public RouletteTable(Context context, AttributeSet attrs) {
 		super(context, attrs);
+	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
 	
 	public RouletteTable(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
+	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
 	
@@ -73,6 +78,7 @@ public class RouletteTable extends View {
 	    Chip.setBitmapResource(context);	
 	    
 	    rectangle = new Rect(0, 0, 0, 0);
+	    
 	} 
 	
 	private void drawTable(Canvas canvas) {
@@ -125,17 +131,11 @@ public class RouletteTable extends View {
 		}
 	}
 	
-	private void drawWheel(Canvas canvas) {
-		canvas.drawCircle(120, 120, 100, wheelPaint);
-		wheelPaint.setColor(Color.GREEN);
-		canvas.drawCircle(120, 120, 80, wheelPaint);
-	}
-	
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		drawWheel(canvas);
 		drawTable(canvas);
+		wheel.draw(canvas);
 		for (Chip c : chips) {
 			c.draw(canvas);
 		}
