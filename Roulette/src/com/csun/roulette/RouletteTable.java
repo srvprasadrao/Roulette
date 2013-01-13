@@ -1,7 +1,11 @@
 package com.csun.roulette;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.csun.roulette.BetArea.BetType;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -9,7 +13,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.Paint.Style;
 import android.graphics.drawable.shapes.OvalShape;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.opengl.Matrix;
@@ -19,40 +25,76 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class RouletteTable extends View {
+	/**
+	 * Constants
+	 */
+	private static final int DISTANCE_FROM_FINGER = 100;
 	private static final int TEXT_SIZE = 20;
+	
+	private static final int OFFSET_X = 40;
+	private static final int OFFSET_Y = 60;
+	
+	private static final int BET_SQUARE_WIDTH = 40;
+	private static final int BET_SQUARE_HEIGHT = 60;
+	
+	private static final int TABLE_ROWS = 3;
+	private static final int TABLE_COLUMNS = 12;
+	
+	
+	private static final int LOWER_BOUNDARY_X = OFFSET_X;
+	private static final int UPPER_BOUNDARY_X = OFFSET_X + (BET_SQUARE_WIDTH * TABLE_COLUMNS);
+	
+	private static final int LOWER_BOUNDARY_Y = OFFSET_Y;
+	private static final int UPPER_BOUNDARY_Y = OFFSET_Y + (BET_SQUARE_HEIGHT * TABLE_ROWS);
 	
 	private Paint tablePaint;
 	private Paint textPaint;
 	private Paint betPaint;
-	private Paint wheelPaint;
-	private Paint borderPaint;
+
+	
 	private List<Chip> chips;
-	private Rect rectangle;
 	
-	private static final int betW = 35;
-	private static final int betH = 60;
+	private RouletteWheel wheel;
 	
-	private final RouletteWheel wheel;
+	private boolean inDrawArea;
+	private Map<String, BetArea> betAreas;
+	
+	private Chip currentChip;
+	private float currentFingerX;
+	private float currentFingerY;
+	
 	
 	public RouletteTable(Context context) {
 		super(context);
-	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
 	
 	public RouletteTable(Context context, AttributeSet attrs) {
 		super(context, attrs);
-	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
 	
 	public RouletteTable(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
-	    wheel = new RouletteWheel(120, 120, 100);
 		initialize(context);
 	}
-	
+
 	private void initialize(Context context) {
+		initializeUi();
+	    initializeCentersBetSquare();
+	    
+	    // others
+	    wheel = new RouletteWheel(120, 120, 100);
+	    
+	    chips = new ArrayList<Chip>();
+	    Chip.setBitmapResource(context);	
+	    currentChip = new Chip(ChipType._25_DOLLARS, 0, 0);
+	    inDrawArea = false;
+	    currentFingerX = 0.0f;
+	    currentFingerY = 0.0f;
+	} 
+
+	private void initializeUi() {
 		setBackgroundDrawable(getResources().getDrawable(R.drawable.table));
 		textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		textPaint.setStyle(Paint.Style.FILL);
@@ -63,71 +105,78 @@ public class RouletteTable extends View {
 	    tablePaint.setStyle(Paint.Style.FILL);
 	    
 	    betPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-	    betPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+	    betPaint.setStyle(Paint.Style.FILL);
 	    betPaint.setColor(Color.BLACK);
-	    
-	    wheelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-	    wheelPaint.setStyle(Paint.Style.FILL);
-	    wheelPaint.setColor(Color.YELLOW);
-	    
-	    borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-	    borderPaint.setStyle(Paint.Style.STROKE);
-	    borderPaint.setColor(Color.WHITE);
-	    
-	    chips = new ArrayList<Chip>();
-	    Chip.setBitmapResource(context);	
-	    
-	    rectangle = new Rect(0, 0, 0, 0);
-	    
-	} 
+	}
+	
+	private void initializeCentersBetSquare() {
+		betAreas = new HashMap<String, BetArea>();
+		int halfWidth = BET_SQUARE_WIDTH / 2;
+		int halfHeight = BET_SQUARE_HEIGHT / 2;
+		String key = "";
+		boolean alternate = true;
+		// centers
+		for (int x = LOWER_BOUNDARY_X + halfWidth; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			for (int y = LOWER_BOUNDARY_Y + halfHeight; y < UPPER_BOUNDARY_Y + halfHeight; y += BET_SQUARE_HEIGHT) {
+				key = x + ":" + y;
+				betAreas.put(key, new BetArea(x, y, BetArea.BetType.SINGLE_NUMBER, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+			}
+		}
+		
+		// horizontal two
+		for (int x = LOWER_BOUNDARY_X + BET_SQUARE_WIDTH; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			for (int y = LOWER_BOUNDARY_Y + halfHeight; y < UPPER_BOUNDARY_Y; y += BET_SQUARE_HEIGHT) {
+				key = x + ":" + y;
+				betAreas.put(key, new BetArea(x, y, BetArea.BetType.TWO_NUMBER_HORIZONTAL, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+			}
+		}
+		
+		// vertical two
+		for (int x = LOWER_BOUNDARY_X + halfWidth; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			for (int y = LOWER_BOUNDARY_Y + BET_SQUARE_HEIGHT; y < UPPER_BOUNDARY_Y; y += BET_SQUARE_HEIGHT) {
+				key = x + ":" + y;
+				betAreas.put(key, new BetArea(x, y, BetArea.BetType.TWO_NUMBER_VERTICAL, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+			}
+		}
+		
+		// middle rows
+		int y = LOWER_BOUNDARY_Y + (1 * BET_SQUARE_HEIGHT);
+		for (int x = LOWER_BOUNDARY_X + BET_SQUARE_WIDTH; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			key = x + ":" + y;
+			betAreas.put(key, new BetArea(x, y, BetArea.BetType.FOUR_NUMBER, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+		}
+		
+		y = LOWER_BOUNDARY_Y + (2 * BET_SQUARE_HEIGHT);
+		for (int x = LOWER_BOUNDARY_X + BET_SQUARE_WIDTH; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			key = x + ":" + y;
+			betAreas.put(key, new BetArea(x, y, BetArea.BetType.FOUR_NUMBER, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+		}
+		
+		// last row
+		alternate = true;
+		for (int x = LOWER_BOUNDARY_X + halfWidth; x <= (UPPER_BOUNDARY_X - halfWidth); x += halfWidth) {
+			key = x + ":" + UPPER_BOUNDARY_Y;
+			if (alternate) {
+				betAreas.put(key, new BetArea(x, UPPER_BOUNDARY_Y, BetArea.BetType.THREE_NUMBER, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+				alternate = false;
+			} else {
+				betAreas.put(key, new BetArea(x, UPPER_BOUNDARY_Y, BetArea.BetType.SIX_NUMBER, BET_SQUARE_WIDTH, BET_SQUARE_HEIGHT));
+				alternate = true;
+			}
+		}
+	}
 	
 	private void drawTable(Canvas canvas) {
-		int startX = 300;
-		int startY = 20; 
-		int counter = 1;
-		for (int x = 1; x <= 12; ++x) {
-			int tempX = startX;
-			int tempY = startY;
-			for (int y = 1; y <= 3; ++y) {
-				rectangle.set(tempX, tempY, tempX + betW, tempY + betH);
-				// move down
-				tempY += betH;
-				// draw it
-				canvas.drawRect(rectangle, betPaint);
-				canvas.drawText(Integer.toString(counter), tempX, tempY, textPaint);
-				if (betPaint.getColor() == Color.BLACK) {
-					betPaint.setColor(Color.RED);
-				} else {
+		betPaint.setColor(Color.RED);
+		for (int x = LOWER_BOUNDARY_X; x < UPPER_BOUNDARY_X; x += BET_SQUARE_WIDTH) {
+			for (int y = LOWER_BOUNDARY_Y; y < UPPER_BOUNDARY_Y; y += BET_SQUARE_HEIGHT) {
+				canvas.drawRect(x, y, x + BET_SQUARE_WIDTH, y + BET_SQUARE_HEIGHT, betPaint);
+				if (betPaint.getColor() == Color.RED) {
 					betPaint.setColor(Color.BLACK);
+				} else {
+					betPaint.setColor(Color.RED);
 				}
-				counter++;
 			}
-			// move to the right
-			startX += betW;
-		}
-		
-		// draw 2 to 1
-		textPaint.setColor(Color.BLACK);
-		betPaint.setColor(Color.GREEN);
-		int tempH = startY;
-		for (int i = 0; i < 3; ++i) {
-			rectangle.set(startX, tempH, startX + betW, tempH + betH);
-			canvas.drawRect(rectangle, betPaint);
-			canvas.drawRect(rectangle, borderPaint);
-			canvas.drawText("2/1", startX, tempH + betH, textPaint);
-			tempH += betH;
-		}
-		
-		// draw 0 and 00
-		startX = 300 - betW;
-		tempH = startY;
-		int newH = (betH * 3) /2;
-		for (int i = 0; i < 2; ++i) {
-			rectangle.set(startX, tempH, startX + betW, tempH + newH);
-			canvas.drawRect(rectangle, betPaint);
-			canvas.drawRect(rectangle, borderPaint);
-			canvas.drawText("0", startX, tempH + betH, textPaint);
-			tempH += newH;
 		}
 	}
 	
@@ -135,18 +184,88 @@ public class RouletteTable extends View {
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
 		drawTable(canvas);
-		wheel.draw(canvas);
+		// wheel.draw(canvas);
 		for (Chip c : chips) {
 			c.draw(canvas);
 		}
+		currentChip.draw(canvas);
+		if (inDrawArea) {
+			drawBetRectangle(canvas, (int)currentFingerX, (int)currentFingerY);
+		}
 	}
-
+	
+	private void drawBetRectangle(Canvas canvas, int x, int y) {
+		String key = new String(x + ":" + y);
+		if (betAreas.containsKey(key)) {
+			BetArea b = betAreas.get(key);
+			b.draw(canvas);
+		}
+	}
+	
+	/**
+	 * Estimate the x/y position of 
+	 * finger position
+	 * 
+	 * @param offset
+	 * 			width/height of betting rectangle
+	 * 
+	 * @return
+	 * 		    the closest integer part of that coordinate
+	 */
+	private int estimateFingerPositionCoordinate(int coordinate, int offset) {
+		if ((coordinate % offset) > offset/2) {
+			return ((coordinate / offset) + 1) * offset;
+		} else {
+			return (coordinate / offset)  * offset;
+		}
+	}
+	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		float x = event.getX();
-		float y = event.getY();
-		chips.add(new Chip(ChipType._1_DOLLAR, x, y));
+		int action = event.getAction();
+		currentChip.setX(event.getX());
+		currentChip.setY(event.getY() - DISTANCE_FROM_FINGER);
+		switch (action) {
+			case MotionEvent.ACTION_DOWN:
+				onTouchDown();
+				break;
+				
+			case MotionEvent.ACTION_UP:
+				onTouchUp();
+				break;
+				
+			case MotionEvent.ACTION_CANCEL:
+				break;
+				
+			case MotionEvent.ACTION_MOVE:
+				onTouchMove(currentChip);
+				break;
+				
+			case MotionEvent.ACTION_OUTSIDE:
+				break;
+		}
+		
+		// force redraw 
 		invalidate();
 		return true;
+	}
+	
+	public void addChip(Chip chip) {
+		chips.add(chip);
+	}
+	
+	private void onTouchMove(Chip c) {
+		currentFingerX = estimateFingerPositionCoordinate((int) c.getX(), BET_SQUARE_WIDTH/2);
+		currentFingerY = estimateFingerPositionCoordinate((int) c.getY(), BET_SQUARE_HEIGHT/2);
+		inDrawArea = true;
+		invalidate();
+	}
+	
+	private void onTouchUp() {
+		inDrawArea = false;
+	}
+	
+	private void onTouchDown() {
+		
 	}
 }

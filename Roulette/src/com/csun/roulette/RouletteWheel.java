@@ -19,7 +19,6 @@ public class RouletteWheel implements Drawable {
 		painter.setColor(Color.BLACK);
 	}
 	
-	@Override
 	public void draw(Canvas canvas) {
 		painter.setColor(Color.WHITE);
 		canvas.drawCircle(originX, originY, radius, painter);
