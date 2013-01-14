@@ -1,12 +1,18 @@
-package com.csun.roulette;
+package com.csun.roulette.view;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.csun.roulette.BetArea;
+import com.csun.roulette.Chip;
+import com.csun.roulette.ChipType;
+import com.csun.roulette.R;
+import com.csun.roulette.RouletteWheel;
 import com.csun.roulette.BetArea.BetType;
 import com.csun.roulette.BetArea.NumberColor;
+import com.csun.roulette.R.drawable;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -25,18 +31,18 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class RouletteTable extends View {
+public class RouletteTableView extends View {
 	/**
 	 * Constants
 	 */
 	private static final int DISTANCE_FROM_FINGER = 100;
 	private static final int TEXT_SIZE = 15;
 	
-	private static final int OFFSET_X = 60;
-	private static final int OFFSET_Y = 80;
+	private static final int OFFSET_X = 40;
+	private static final int OFFSET_Y = 0;
 	
-	private static final int BET_SQUARE_WIDTH = 60;
-	private static final int BET_SQUARE_HEIGHT = 80;
+	private static final int BET_SQUARE_WIDTH = 40;
+	private static final int BET_SQUARE_HEIGHT = 50;
 	
 	private static final int TABLE_ROWS = 3;
 	private static final int TABLE_COLUMNS = 12;
@@ -89,17 +95,17 @@ public class RouletteTable extends View {
 	private float currentFingerY;
 	
 	
-	public RouletteTable(Context context) {
+	public RouletteTableView(Context context) {
 		super(context);
 		initialize(context);
 	}
 	
-	public RouletteTable(Context context, AttributeSet attrs) {
+	public RouletteTableView(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		initialize(context);
 	}
 	
-	public RouletteTable(Context context, AttributeSet attrs, int defStyle) {
+	public RouletteTableView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
 		initialize(context);
 	}
@@ -424,7 +430,7 @@ public class RouletteTable extends View {
 				break;
 				
 			case MotionEvent.ACTION_UP:
-				onTouchUp();
+				onTouchUp(currentChip);
 				break;
 				
 			case MotionEvent.ACTION_CANCEL:
@@ -447,6 +453,11 @@ public class RouletteTable extends View {
 		chips.add(chip);
 	}
 	
+	public void setCurrentChip(Chip chip) {
+		currentChip = chip;
+		invalidate();
+	}
+	
 	private void onTouchMove(Chip c) {
 		currentFingerX = estimateFingerPositionCoordinate((int) c.getX(), BET_SQUARE_WIDTH/2);
 		currentFingerY = estimateFingerPositionCoordinate((int) c.getY(), BET_SQUARE_HEIGHT/2);
@@ -454,7 +465,11 @@ public class RouletteTable extends View {
 		invalidate();
 	}
 	
-	private void onTouchUp() {
+	private void onTouchUp(Chip c) {
+		String key = new String((int) currentFingerX + ":" + (int)currentFingerY);
+		if (betAreas.containsKey(key)) {
+			addChip(new Chip(c.getChipType(), currentFingerX, currentFingerY));
+		}
 		inDrawArea = false;
 	}
 	

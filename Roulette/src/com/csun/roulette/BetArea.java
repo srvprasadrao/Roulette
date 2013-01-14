@@ -30,7 +30,6 @@ public class BetArea implements Drawable {
 		THREE_NUMBER,
 		FOUR_NUMBER,
 		SIX_NUMBER,
-		
 		TWO_TO_ONE,
 		ONE_TO_TWELVE,
 		LARGE_18_NUMBER,
@@ -142,7 +141,6 @@ public class BetArea implements Drawable {
 				
 			case ODD:
 				drawIf(canvas, new BettingFunctor() {
-					@Override
 					public boolean isIt(BetArea betArea) {
 						int n = Integer.parseInt(betArea.getNumber());
 						return (n != 99 && n % 2 == 1);
@@ -152,7 +150,6 @@ public class BetArea implements Drawable {
 				
 			case EVEN:
 				drawIf(canvas, new BettingFunctor() {
-					@Override
 					public boolean isIt(BetArea betArea) {
 						int n = Integer.parseInt(betArea.getNumber());
 						return (n != 99 && n % 2 == 0);
@@ -162,7 +159,6 @@ public class BetArea implements Drawable {
 				
 			case RED:
 				drawIf(canvas, new BettingFunctor() {
-					@Override
 					public boolean isIt(BetArea betArea) {
 						return betArea.getNumberColor() == NumberColor.RED;
 					}
@@ -171,7 +167,6 @@ public class BetArea implements Drawable {
 				
 			case BLACK:
 				drawIf(canvas, new BettingFunctor() {
-					@Override
 					public boolean isIt(BetArea betArea) {
 						return betArea.getNumberColor() == NumberColor.BLACK;
 					}
